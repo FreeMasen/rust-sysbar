@@ -29,7 +29,6 @@ struct WindowsSysBar {
     callbacks: Vec<MenuItem>,
 }
 
-
 impl crate::Bar for WindowsSysBar {
     fn new(name: &str) -> Self {
         Self {
@@ -53,9 +52,7 @@ impl crate::Bar for WindowsSysBar {
         let mut instance = unsafe { GetModuleHandle(0 as _) };
         let mut hWnd = unsafe { InitInstance(&mut instance as _, FALSE) };
         let bits = self.get_icon();
-        let mut icon = unsafe {
-            CreateIcon(instance, 8, 8, 1, 1, &bits as _, &bits as _)
-        };
+        let mut icon = unsafe { CreateIcon(instance, 8, 8, 1, 1, &bits as _, &bits as _) };
         let mut icon_data: NOTIFYICONDATA = std::mem::zeroed();
         icon_data.cbSize = std::mem::size_of::<NOTIFYICONDATA>();
         icon_data.hWnd = hWnd;
@@ -77,15 +74,15 @@ impl crate::Bar for WindowsSysBar {
 
 impl WindowsSysBar {
     fn get_icon(&self) -> [u8; 8] {
-        use font8x8::{BASIC_FONTS, UnicodeFonts};
+        use font8x8::{UnicodeFonts, BASIC_FONTS};
         if let Some(c) = self.name.chars().next() {
             if let Some(bits) = BASIC_FONTS.get(c) {
                 bits
             } else {
-                [0;u8]
+                [0; u8]
             }
         } else {
-            [0;u8]
+            [0; u8]
         }
     }
 

@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate log;
-
 #[cfg(windows)]
 extern crate font8x8;
 
@@ -37,12 +34,9 @@ impl Sysbar<SysbarImpl> {
 #[cfg(target_os = "macos")]
 type SysbarImpl = mac_os::MacOsSysbar;
 
-
 pub trait Bar {
     fn new(name: &str) -> Self;
     fn add_item(&mut self, label: &str, action: Box<dyn Fn()>);
     fn add_quit_item(&mut self, label: &str);
     fn display(&mut self);
 }
-
-
