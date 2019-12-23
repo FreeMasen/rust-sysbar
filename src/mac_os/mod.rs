@@ -37,8 +37,8 @@ impl Drop for MacOsSysbar {
     }
 }
 
-impl MacOsSysbar {
-    pub fn new(name: &str) -> Self {
+impl crate::Bar for MacOsSysbar {
+    fn new(name: &str) -> Self {
         unsafe {
             let pool = NSAutoreleasePool::new(nil);
             MacOsSysbar {
@@ -49,7 +49,7 @@ impl MacOsSysbar {
         }
     }
     #[allow(clippy::let_unit_value)]
-    pub fn add_item(&mut self, label: &str, cbs: Box<dyn Fn() -> ()>) {
+    fn add_item(&mut self, label: &str, cbs: Box<dyn Fn() -> ()>) {
         unsafe {
             let cb_obj = Callback::from(cbs);
 
@@ -70,7 +70,7 @@ impl MacOsSysbar {
     }
 
     // TODO: allow user callback
-    pub fn add_quit_item(&mut self, label: &str) {
+    fn add_quit_item(&mut self, label: &str) {
         unsafe {
             let no_key = NSString::alloc(nil).init_str("");
             let pref_item = NSString::alloc(nil).init_str(label);
@@ -85,7 +85,7 @@ impl MacOsSysbar {
         }
     }
 
-    pub fn display(&mut self) {
+    fn display(&mut self) {
         unsafe {
             let app = NSApp();
             app.activateIgnoringOtherApps_(YES);
@@ -117,17 +117,17 @@ unsafe impl Message for Callback {}
 // another boxed object ($cbs_name), which, since it doesn't use traits, is actually a
 // regular "thin" pointer, and store THAT pointer in the ivar.  But...so...oy.
 struct CallbackState {
-    cb: Box<Fn() -> ()>,
+    cb: Box<dyn Fn() -> ()>,
 }
 
 impl Callback {
-    fn from(cb: Box<Fn() -> ()>) -> Id<Self> {
+    fn from(cb: Box<dyn Fn() -> ()>) -> Id<Self> {
         let cbs = CallbackState { cb };
         let bcbs = Box::new(cbs);
 
         let ptr = Box::into_raw(bcbs);
         let ptr = ptr as *mut c_void as usize;
-        println!("{}", ptr);
+        log::debug!("{}", ptr);
         let mut oid = <Callback as INSObject>::new();
         (*oid).setptr(ptr);
         oid
@@ -136,7 +136,7 @@ impl Callback {
     fn setptr(&mut self, uptr: usize) {
         unsafe {
             let obj = &mut *(self as *mut _ as *mut ::objc::runtime::Object);
-            println!("setting the ptr: {}", uptr);
+            log::debug!("setting the ptr: {}", uptr);
             obj.set_ivar("_cbptr", uptr);
         }
     }
@@ -151,20 +151,20 @@ impl INSObject for Callback {
 
         let mut klass = Class::get(cname);
         if klass.is_none() {
-            println!("registering class for {}", cname);
+            log::debug!("registering class for {}", cname);
             let superclass = NSObject::class();
             let mut decl = ClassDecl::new(&cname, superclass).unwrap();
             decl.add_ivar::<usize>("_cbptr");
 
             extern "C" fn sysbar_callback_call(this: &Object, _cmd: Sel) {
-                println!("callback, getting the pointer");
+                log::debug!("callback, getting the pointer");
                 unsafe {
                     let pval: usize = *this.get_ivar("_cbptr");
                     let ptr = pval as *mut c_void;
                     let ptr = ptr as *mut CallbackState;
                     let bcbs: Box<CallbackState> = Box::from_raw(ptr);
                     {
-                        println!("cb test from cb");
+                        log::debug!("cb test from cb");
                         (*bcbs.cb)();
                     }
                     mem::forget(bcbs);

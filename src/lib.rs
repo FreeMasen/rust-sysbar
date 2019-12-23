@@ -1,3 +1,9 @@
+#[macro_use]
+extern crate log;
+
+#[cfg(windows)]
+extern crate font8x8;
+
 #[cfg(target_os = "macos")]
 mod mac_os;
 
@@ -5,14 +11,17 @@ mod mac_os;
 #[macro_use]
 extern crate objc;
 
-pub struct Sysbar(SysbarImpl);
+#[cfg(windows)]
+mod windows;
 
-impl Sysbar {
+pub struct Sysbar<T = SysbarImpl>(T);
+
+impl<T: Bar> Sysbar<T> {
     pub fn new(name: &str) -> Self {
-        Sysbar(SysbarImpl::new(name))
+        Sysbar(T::new(name))
     }
 
-    pub fn add_item(&mut self, label: &str, cbs: Box<Fn() -> ()>) {
+    pub fn add_item(&mut self, label: &str, cbs: Box<dyn Fn() -> ()>) {
         self.0.add_item(label, cbs)
     }
 
@@ -27,3 +36,13 @@ impl Sysbar {
 
 #[cfg(target_os = "macos")]
 type SysbarImpl = mac_os::MacOsSysbar;
+
+
+pub trait Bar {
+    fn new(name: &str) -> Self;
+    fn add_item(&mut self, label: &str, action: Box<dyn Fn()>);
+    fn add_quit_item(&mut self, label: &str);
+    fn display(&mut self);
+}
+
+
