@@ -16,9 +16,9 @@ mod windows;
 
 pub struct Sysbar<T = SysbarImpl>(T);
 
-impl<T: Bar> Sysbar<T> {
+impl Sysbar<SysbarImpl> {
     pub fn new(name: &str) -> Self {
-        Sysbar(T::new(name))
+        Sysbar(SysbarImpl::new(name))
     }
 
     pub fn add_item(&mut self, label: &str, cbs: Box<dyn Fn() -> ()>) {
